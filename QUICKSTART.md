@@ -140,8 +140,6 @@ Check the worker's state file: `cat workers/<worker-id>/state.json`
 
 ## Next Steps
 
-- Phase 2: Git integration for isolated workspaces
-- Phase 3: LLM integration for actual task execution
-- Phase 4: Supervisor for health monitoring
+Phase 2 will add Git integration for isolated workspaces. Phase 3 will add LLM integration for actual task execution. Phase 4 will add supervisor for health monitoring.
 
-For more information, see the main README.md or sgastown_schematic.md.
+See README.md or sgastown_schematic.md for more information.

@@ -2,48 +2,44 @@
 
 A simplified multi-agent task orchestration system inspired by Gas Town.
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+## Overview
 
-## 🎯 Overview
+Simple Gas Town enables persistent, observable multi-agent coordination through:
 
-Simple Gas Town enables **persistent, observable multi-agent coordination** through:
+- File-based persistence - All state survives crashes and restarts
+- Isolated workspaces - Each agent works independently
+- Mailbox communication - Agents pass messages via JSON files
+- LLM-ready - Designed for AI-powered task execution
+- Propulsion Principle - Workers execute immediately when assigned work
 
-- 📁 **File-based persistence** - All state survives crashes and restarts
-- 🏗️ **Isolated workspaces** - Each agent works independently
-- 📬 **Mailbox communication** - Agents pass messages via JSON files
-- 🤖 **LLM-ready** - Designed for AI-powered task execution
-- ⚡ **Propulsion Principle** - Workers execute immediately when assigned work
+## Features
 
-## ✨ Features
-
-### Phase 1 (Current) - Core Foundation ✅
-- ✅ Task creation, listing, and management
-- ✅ Worker lifecycle management (spawn, run, kill)
-- ✅ Mailbox-based message passing
-- ✅ Hook-based work assignment
-- ✅ Convoy (batch) tracking
-- ✅ JSON file state persistence
-- ✅ Rich CLI with beautiful output
-- ✅ Complete working demo
+### Phase 1 (Current) - Core Foundation
+- Task creation, listing, and management
+- Worker lifecycle management (spawn, run, kill)
+- Mailbox-based message passing
+- Hook-based work assignment
+- Convoy (batch) tracking
+- JSON file state persistence
+- Rich CLI with beautiful output
+- Complete working demo
 
 ### Phase 2 (Planned) - Git Integration
-- 🔄 Git worktree per worker
-- 🔄 Isolated branch per task
-- 🔄 Automatic cleanup
+- Git worktree per worker
+- Isolated branch per task
+- Automatic cleanup
 
 ### Phase 3 (Planned) - LLM Integration
-- 🔄 OpenAI/Anthropic/GitHub Copilot support
-- 🔄 Real task execution with AI
-- 🔄 Code generation and modification
+- OpenAI/Anthropic/GitHub Copilot support
+- Real task execution with AI
+- Code generation and modification
 
 ### Phase 4 (Planned) - Supervision
-- 🔄 Health monitoring
-- 🔄 Automatic recovery
-- 🔄 Timeout handling
+- Health monitoring
+- Automatic recovery
+- Timeout handling
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -97,16 +93,16 @@ The demo creates a complete example with:
 - Automatic worker spawning and execution
 - Progress tracking and completion
 
-**Demo completes in ~6 seconds!** 🎉
+Demo completes in approximately 6 seconds.
 
-## 📚 Documentation
+## Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)** - Detailed getting started guide
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design
 - **[BUILD_SUMMARY.md](BUILD_SUMMARY.md)** - What was built and how
 - **[sgastown_schematic.md](sgastown_schematic.md)** - Original design specification
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────┐
@@ -135,7 +131,7 @@ The demo creates a complete example with:
 - **Mailboxes** - Message passing between agents
 - **Hooks** - Work assignments for workers
 
-## 📖 CLI Commands
+## CLI Commands
 
 ### Initialization
 ```bash
@@ -172,7 +168,7 @@ sgt convoy status <convoy-id> --project <name>
 sgt assign <task-id> --project <name>  # Spawn + assign + hook
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Install dev dependencies
@@ -185,7 +181,7 @@ pytest tests/
 pytest --cov=sgt tests/
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 simple_gastown/
@@ -225,7 +221,7 @@ simple_gastown/
 └── requirements.txt      # Dependencies
 ```
 
-## 🔧 Technology Stack
+## Technology Stack
 
 - **Python 3.9+** - Modern Python with type hints
 - **Click** - Command-line interface framework
@@ -234,7 +230,7 @@ simple_gastown/
 - **asyncio** - Async/await for future LLM integration
 - **JSON** - Simple, readable file storage
 
-## 🎯 Design Philosophy
+## Design Philosophy
 
 1. **Persistence First** - Everything survives crashes
 2. **Observable** - All state is visible and inspectable
@@ -243,7 +239,7 @@ simple_gastown/
 5. **Self-Management** - Workers self-destruct when done
 6. **Simplicity** - JSON files, no databases
 
-## 🆚 Comparison with Original Gas Town
+## Comparison with Original Gas Town
 
 | Feature | Simple Gas Town | Full Gas Town |
 |---------|----------------|---------------|
@@ -256,7 +252,7 @@ simple_gastown/
 
 Simple Gas Town captures the core concepts while remaining easy to understand and extend.
 
-## 🤝 Contributing
+## Contributing
 
 This is a learning/demonstration project. Feel free to:
 - Fork and experiment
@@ -265,20 +261,12 @@ This is a learning/demonstration project. Feel free to:
 - Create new agent types
 - Improve the CLI
 
-## 📝 License
+## License
 
 MIT License - See LICENSE file for details
 
-## 🙏 Acknowledgments
+## Support
 
-Inspired by the original [Gas Town](https://github.com/codelion/gastown) project by @codelion.
+Check the [QUICKSTART.md](QUICKSTART.md) for detailed usage or see [sgastown_schematic.md](sgastown_schematic.md) for design details.
 
-## 📞 Support
-
-- 📖 Check the [QUICKSTART.md](QUICKSTART.md) for detailed usage
-- 🐛 Report issues on GitHub
-- 💡 See [sgastown_schematic.md](sgastown_schematic.md) for design details
-
----
-
-**Built with ❤️ for multi-agent orchestration**
+Inspired by the original [Gas Town](https://github.com/codelion/gastown) project.
