@@ -25,13 +25,29 @@ class AgentManager:
     
     def spawn_worker(self, project: str, task_id: str,
                     instructions: Optional[str] = None,
-                    priority: TaskPriority = TaskPriority.NORMAL) -> AgentState:
-        """Spawn a new worker for a task."""
+                    priority: TaskPriority = TaskPriority.NORMAL,
+                    repo_path: Optional[Path] = None,
+                    use_worktree: bool = False) -> AgentState:
+        """Spawn a new worker for a task.
+        
+        Args:
+            project: Project name
+            task_id: Task ID to assign
+            instructions: Optional instructions for the worker
+            priority: Task priority
+            repo_path: Optional path to git repository for worktree mode
+            use_worktree: If True and repo_path provided, create isolated worktree
+        """
         # Generate worker ID
         worker_id = generate_worker_id()
         
-        # Create workspace
-        workspace = self.workspace_manager.create_worker_workspace(project, worker_id)
+        # Create workspace (with optional worktree)
+        workspace = self.workspace_manager.create_worker_workspace(
+            project, 
+            worker_id,
+            repo_path=repo_path,
+            use_worktree=use_worktree
+        )
         
         # Write worker instructions
         self.workspace_manager.write_worker_instructions(workspace, task_id, project)
@@ -80,15 +96,27 @@ class AgentManager:
         
         return agent
     
-    def kill_worker(self, worker_id: str):
-        """Terminate a worker and clean up."""
+    def kill_worker(self, worker_id: str, force: bool = False, 
+                   commit_message: Optional[str] = None):
+        """Terminate a worker and clean up.
+        
+        Args:
+            worker_id: Worker ID to terminate
+            force: If True, force cleanup even with uncommitted changes
+            commit_message: If provided, commit work before cleanup
+        """
         agent = self.state_manager.get_agent(worker_id)
         if not agent:
             logger.warning(f"Worker {worker_id} not found")
             return
         
-        # Clean up workspace
         workspace = Path(agent.workspace)
+        
+        # Optionally commit work before cleanup
+        if commit_message:
+            self.workspace_manager.commit_work(workspace, commit_message)
+        
+        # Clean up workspace (handles worktree removal)
         self.workspace_manager.cleanup_workspace(workspace)
         
         # Remove from state
@@ -150,3 +178,30 @@ class AgentManager:
     def get_manager(self) -> Optional[AgentState]:
         """Get the manager agent."""
         return self.state_manager.get_agent("manager")
+    
+    def get_work_status(self, worker_id: str) -> Optional[str]:
+        """Get git status for a worker's worktree."""
+        agent = self.get_worker(worker_id)
+        if not agent:
+            return None
+        
+        workspace = Path(agent.workspace)
+        return self.workspace_manager.get_work_status(workspace)
+    
+    def commit_worker_work(self, worker_id: str, message: str) -> bool:
+        """Commit changes in a worker's worktree."""
+        agent = self.get_worker(worker_id)
+        if not agent:
+            return False
+        
+        workspace = Path(agent.workspace)
+        return self.workspace_manager.commit_work(workspace, message)
+    
+    def get_worktree_path(self, worker_id: str) -> Optional[Path]:
+        """Get the worktree path for a worker."""
+        agent = self.get_worker(worker_id)
+        if not agent:
+            return None
+        
+        workspace = Path(agent.workspace)
+        return self.workspace_manager.get_worktree_path(workspace)

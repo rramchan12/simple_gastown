@@ -46,7 +46,3 @@ state/
 manager/
 projects/
 .gastown/
-
-# Documentation artifacts (generated during build)
-ARCHITECTURE.md
-BUILD_SUMMARY.md

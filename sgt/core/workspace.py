@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Optional
 import shutil
+import json
 
 from sgt.utils.logger import setup_logger
 
@@ -15,8 +16,24 @@ class WorkspaceManager:
     def __init__(self, town_root: Path):
         self.town_root = Path(town_root)
     
-    def create_worker_workspace(self, project: str, worker_id: str) -> Path:
-        """Create a workspace for a worker."""
+    def create_worker_workspace(
+        self, 
+        project: str, 
+        worker_id: str,
+        repo_path: Optional[Path] = None,
+        use_worktree: bool = False
+    ) -> Path:
+        """Create a workspace for a worker.
+        
+        Args:
+            project: Project name
+            worker_id: Worker ID
+            repo_path: Optional path to git repository for worktree creation
+            use_worktree: If True and repo_path provided, create a git worktree
+            
+        Returns:
+            Path to the created workspace
+        """
         workspace = self.town_root / "projects" / project / "workers" / worker_id
         workspace.mkdir(parents=True, exist_ok=True)
         
@@ -27,9 +44,119 @@ class WorkspaceManager:
         # Create state file placeholder
         state_file = workspace / "state.json"
         if not state_file.exists():
-            import json
             with open(state_file, 'w') as f:
                 json.dump({"status": "initializing"}, f)
+        
+        # Create git worktree if requested
+        worktree_path = None
+        if use_worktree and repo_path:
+            worktree_path = self._create_worktree(workspace, repo_path, worker_id)
+        
+        logger.info(f"Created workspace for {worker_id} at {workspace}")
+        
+        return workspace
+    
+    def _create_worktree(self, workspace: Path, repo_path: Path, worker_id: str) -> Optional[Path]:
+        """Create a git worktree in the workspace.
+        
+        Args:
+            workspace: Worker's workspace directory
+            repo_path: Path to the main git repository
+            worker_id: Worker ID (used for branch name)
+            
+        Returns:
+            Path to the worktree or None if creation failed
+        """
+        from sgt.git.worktree import WorktreeManager
+        
+        wt_mgr = WorktreeManager(repo_path)
+        
+        if not wt_mgr.is_git_repo():
+            logger.warning(f"Not a git repository: {repo_path}")
+            return None
+        
+        # Create worktree in workspace with worker's branch
+        branch_name = f"worker-{worker_id}"
+        worktree_path = workspace / repo_path.name
+        
+        if wt_mgr.create_worktree(worktree_path, branch_name, create_branch=True):
+            # Store worktree info in workspace
+            self._write_worktree_info(workspace, repo_path, worktree_path, branch_name)
+            logger.info(f"Created worktree at {worktree_path} on branch {branch_name}")
+            return worktree_path
+        else:
+            logger.error(f"Failed to create worktree for {worker_id}")
+            return None
+    
+    def _write_worktree_info(self, workspace: Path, repo_path: Path, 
+                            worktree_path: Path, branch: str):
+        """Store worktree information in workspace."""
+        info = {
+            "repo_path": str(repo_path),
+            "worktree_path": str(worktree_path),
+            "branch": branch
+        }
+        info_file = workspace / "worktree.json"
+        with open(info_file, 'w') as f:
+            json.dump(info, f, indent=2)
+    
+    def _read_worktree_info(self, workspace: Path) -> Optional[dict]:
+        """Read worktree information from workspace."""
+        info_file = workspace / "worktree.json"
+        if info_file.exists():
+            with open(info_file) as f:
+                return json.load(f)
+        return None
+    
+    def get_worktree_path(self, workspace: Path) -> Optional[Path]:
+        """Get the worktree path for a workspace."""
+        info = self._read_worktree_info(workspace)
+        if info and "worktree_path" in info:
+            return Path(info["worktree_path"])
+        return None
+    
+    def commit_work(self, workspace: Path, message: str) -> bool:
+        """Commit changes in a worker's worktree.
+        
+        Args:
+            workspace: Worker's workspace directory
+            message: Commit message
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        info = self._read_worktree_info(workspace)
+        if not info:
+            return False
+        
+        from sgt.git.worktree import WorktreeManager
+        
+        repo_path = Path(info["repo_path"])
+        worktree_path = Path(info["worktree_path"])
+        
+        wt_mgr = WorktreeManager(repo_path)
+        return wt_mgr.commit_changes(message, path=worktree_path)
+    
+    def get_work_status(self, workspace: Path) -> Optional[str]:
+        """Get git status for a worker's worktree.
+        
+        Args:
+            workspace: Worker's workspace directory
+            
+        Returns:
+            Git status output or None if no worktree
+        """
+        info = self._read_worktree_info(workspace)
+        if not info:
+            return None
+        
+        from sgt.git.worktree import WorktreeManager
+        
+        repo_path = Path(info["repo_path"])
+        worktree_path = Path(info["worktree_path"])
+        
+        wt_mgr = WorktreeManager(repo_path)
+        return wt_mgr.get_status(path=worktree_path)
         
         logger.info(f"Created workspace for {worker_id} at {workspace}")
         
@@ -55,8 +182,20 @@ class WorkspaceManager:
     
     def cleanup_workspace(self, workspace: Path):
         """Clean up a workspace directory."""
+        # First, remove any git worktree
+        info = self._read_worktree_info(workspace)
+        if info:
+            from sgt.git.worktree import WorktreeManager
+            
+            repo_path = Path(info["repo_path"])
+            worktree_path = Path(info["worktree_path"])
+            
+            wt_mgr = WorktreeManager(repo_path)
+            wt_mgr.remove_worktree(worktree_path, force=True)
+        
+        # Then remove the workspace directory
         if workspace.exists():
-            shutil.rmtree(workspace)
+            shutil.rmtree(workspace, ignore_errors=True)
             logger.info(f"Cleaned up workspace at {workspace}")
     
     def _write_manager_instructions(self, instructions_file: Path):
