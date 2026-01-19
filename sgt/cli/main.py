@@ -5,10 +5,12 @@ from pathlib import Path
 
 from sgt.cli import task, convoy, worker, init as init_commands
 from sgt.cli.git import git
+from sgt.cli.llm import llm
+from sgt.cli.supervisor import supervisor
 
 
 @click.group()
-@click.version_option(version="0.2.0")
+@click.version_option(version="0.4.0")
 def cli():
     """Simple Gas Town - Multi-agent task orchestration."""
     pass
@@ -23,6 +25,8 @@ cli.add_command(worker.worker)
 cli.add_command(init_commands.assign)
 cli.add_command(init_commands.status)
 cli.add_command(git)
+cli.add_command(llm)
+cli.add_command(supervisor)
 
 
 def main():

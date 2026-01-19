@@ -205,6 +205,22 @@ AI workers complete them in parallel (~2-3 minutes total)""",
         border_style="magenta"
     ))
     
+    # Check for LLM availability
+    import os
+    use_llm = bool(os.environ.get("GITHUB_TOKEN") or os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
+    llm_provider = None
+    if os.environ.get("GITHUB_TOKEN"):
+        llm_provider = "github"
+        console.print("[green]✓ GitHub Models API detected - using real LLM![/green]\n")
+    elif os.environ.get("OPENAI_API_KEY"):
+        llm_provider = "openai"
+        console.print("[green]✓ OpenAI API detected - using real LLM![/green]\n")
+    elif os.environ.get("ANTHROPIC_API_KEY"):
+        llm_provider = "anthropic"
+        console.print("[green]✓ Anthropic API detected - using real LLM![/green]\n")
+    else:
+        console.print("[yellow]⚠ No LLM API key found - using simulation mode[/yellow]\n")
+    
     console.print("\n[bold]Running first 3 tasks as demonstration...[/bold]\n")
     
     # Execute first 3 tasks as demo
@@ -218,9 +234,14 @@ AI workers complete them in parallel (~2-3 minutes total)""",
         # Assign
         task_manager.assign_task(task.id, worker.id)
         
-        # Run worker
+        # Run worker with LLM if available
         workspace = Path(worker.workspace)
-        await run_worker(worker.id, workspace, town_root, project_name)
+        await run_worker(
+            worker.id, workspace, town_root, project_name,
+            use_llm=use_llm,
+            llm_provider=llm_provider,
+            llm_model="gpt-4o-mini" if llm_provider == "github" else None
+        )
         
         # Show simulated output
         completed_task = task_manager.get_task(task.id)

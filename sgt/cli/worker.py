@@ -86,7 +86,10 @@ def worker_kill(worker_id, town):
 @worker.command('run')
 @click.argument('worker_id')
 @click.option('--town', type=click.Path(), default='.', help='Town root directory')
-def worker_run(worker_id, town):
+@click.option('--llm/--no-llm', default=True, help='Use LLM for task execution')
+@click.option('--provider', '-p', type=click.Choice(['openai', 'anthropic', 'github']), help='LLM provider')
+@click.option('--model', '-m', help='LLM model to use')
+def worker_run(worker_id, town, llm, provider, model):
     """Run a worker (for testing/manual execution)."""
     town_path = Path(town).resolve()
     
@@ -102,12 +105,24 @@ def worker_run(worker_id, town):
         return
     
     console.print(f"[cyan]Running worker {worker_id}...[/cyan]")
+    if llm:
+        console.print(f"[dim]LLM enabled (provider: {provider or 'auto'}, model: {model or 'default'})[/dim]")
+    else:
+        console.print(f"[dim]LLM disabled (simulation mode)[/dim]")
     
     workspace = Path(worker_agent.workspace)
     
     # Run the worker
     try:
-        asyncio.run(run_worker(worker_id, workspace, town_path, worker_agent.project))
+        asyncio.run(run_worker(
+            worker_id, 
+            workspace, 
+            town_path, 
+            worker_agent.project,
+            use_llm=llm,
+            llm_provider=provider,
+            llm_model=model,
+        ))
         console.print(f"[green]✓[/green] Worker {worker_id} completed")
     except Exception as e:
         console.print(f"[red]Error: Worker failed - {e}[/red]")
