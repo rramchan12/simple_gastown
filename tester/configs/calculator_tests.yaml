@@ -1,0 +1,106 @@
+# Test Generator Configuration
+# =============================
+# Configuration file for the Simple Gas Town test runner.
+# 
+# Usage:
+#   python -m tester configs/calculator_tests.yaml
+#   
+# Or programmatically:
+#   from tester import TestRunner
+#   runner = TestRunner.from_config("configs/calculator_tests.yaml")
+#   asyncio.run(runner.run())
+
+name: test-gen
+repo_path: ../sample-repos/calculator
+town_root: ../../test-generator-town
+
+# Git worktree isolation for parallel work
+use_worktrees: true
+
+# Convoy name for grouping tasks
+convoy_name: "Test Suite Generation"
+
+# Clean up previous workspace on start
+cleanup_on_start: true
+
+# LLM Configuration (optional - auto-detects from environment if not specified)
+llm:
+  # provider: github  # github, openai, anthropic, or leave blank for auto-detect
+  # model: gpt-4o-mini
+  temperature: 0.7
+  max_tokens: 4096
+
+# Task definitions
+tasks:
+  - title: "Analyze code for testable functions"
+    description: |
+      Analyze the Python code in this repository and identify all testable functions.
+      
+      For each function, document:
+      - Function name and signature
+      - What the function does
+      - Input parameters and types
+      - Return type
+      - Edge cases to test (especially error conditions)
+      - Suggested test scenarios
+      
+      Focus on the main module files. Output a structured analysis that a test writer 
+      can use to create comprehensive tests.
+    priority: high
+    tags: [analysis, planning]
+
+  - title: "Write pytest tests for basic operations"
+    description: |
+      Write pytest test cases for the basic arithmetic operations: add, subtract, multiply, divide.
+      
+      Requirements:
+      - Use pytest style (def test_xxx)
+      - Include docstrings explaining each test
+      - Test normal cases with various inputs
+      - Test edge cases (zero, negative numbers, floats)
+      - Test error conditions (e.g., divide by zero)
+      - Use pytest.raises for exception testing
+      - Include parametrized tests where appropriate
+      
+      Output complete, runnable pytest code.
+    priority: high
+    tags: [tests, basic]
+
+  - title: "Write pytest tests for advanced functions"
+    description: |
+      Write pytest test cases for the advanced mathematical functions: power, factorial, is_even, fibonacci.
+      
+      Requirements:
+      - Use pytest style (def test_xxx)
+      - Include docstrings for each test
+      - Test normal cases
+      - Test edge cases:
+        * factorial(0), factorial(1), negative input
+        * fibonacci(0), fibonacci(1), negative input
+        * power with negative exponents
+        * is_even with negative numbers
+      - Use pytest.raises for ValueError cases
+      - Use @pytest.mark.parametrize for multiple test values
+      
+      Output complete, runnable pytest code.
+    priority: high
+    tags: [tests, advanced]
+
+  - title: "Create test documentation and conftest.py"
+    description: |
+      Create supporting test infrastructure:
+      
+      1. A conftest.py file with:
+         - Useful fixtures (if any make sense for the tests)
+         - pytest configuration
+         - Any shared test utilities
+      
+      2. A README for the tests directory explaining:
+         - How to run the tests
+         - Test organization
+         - Coverage expectations
+         - How to add new tests
+      
+      Keep it practical and focused on the module being tested.
+    priority: normal
+    tags: [docs, infrastructure]
