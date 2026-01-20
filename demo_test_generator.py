@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Demo: Test Suite Generator
-==========================
+Demo: Test Suite Generator with Git Worktrees
+==============================================
 Uses Simple Gas Town to generate pytest tests for Python code.
+Each worker gets an isolated git worktree for parallel work.
 
 Workers:
   1. analyzer - Analyzes code structure and identifies testable functions
@@ -12,17 +13,27 @@ Workers:
 
 Run with: python demo_test_generator.py
 Requires: GITHUB_TOKEN environment variable set
+
+After running, validate with CLI:
+  cd test-generator-town
+  sgt project list
+  sgt task list --project test-gen
+  sgt convoy list
+  git worktree list
 """
 
 import asyncio
+import subprocess
 from pathlib import Path
 import shutil
+import os
 from sgt.core.workspace import WorkspaceManager
 from sgt.core.task_manager import TaskManager
 from sgt.core.convoy_manager import ConvoyManager
 from sgt.core.agent_manager import AgentManager
 from sgt.storage.state import StateManager
 from sgt.agents.worker import run_worker
+from sgt.git.worktree import WorktreeManager
 
 # Sample code to test - a simple calculator module
 SAMPLE_CODE = '''
@@ -74,6 +85,18 @@ def fibonacci(n: int) -> int:
     return b
 '''
 
+def run_cmd(cmd: str, cwd: Path = None) -> str:
+    """Run a shell command."""
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        cwd=cwd,
+        capture_output=True,
+        text=True
+    )
+    return result.stdout + result.stderr
+
+
 def main():
     asyncio.run(async_main())
 
@@ -81,10 +104,10 @@ def main():
 async def async_main():
     print("=" * 60)
     print("🧪 Simple Gas Town: Test Suite Generator Demo")
+    print("   (with Git Worktrees)")
     print("=" * 60)
     
     # Check for LLM availability
-    import os
     llm_available = any([
         os.environ.get('GITHUB_TOKEN'),
         os.environ.get('OPENAI_API_KEY'),
@@ -115,18 +138,35 @@ async def async_main():
     print()
     
     # Setup workspace
-    town_root = Path("./test-generator-town").resolve()
+    script_dir = Path(__file__).parent.resolve()
+    town_root = script_dir / "test-generator-town"
+    source_repo = town_root / "calculator-repo"
+    
     if town_root.exists():
         print("🗑️  Cleaning up previous workspace...")
-        shutil.rmtree(town_root)
+        # Clean up any git worktrees first
+        if source_repo.exists():
+            try:
+                run_cmd("git worktree prune", source_repo)
+            except:
+                pass
+        # Force cleanup with retry for Windows file locks
+        import time
+        for _ in range(3):
+            try:
+                shutil.rmtree(town_root, ignore_errors=False)
+                break
+            except Exception:
+                time.sleep(0.5)
+                shutil.rmtree(town_root, ignore_errors=True)
     
     print("📁 Creating workspace: test-generator-town")
     
     # Initialize town structure
-    town_root.mkdir(parents=True)
-    (town_root / ".gastown").mkdir()
-    (town_root / "state").mkdir()
-    (town_root / "projects").mkdir()
+    town_root.mkdir(parents=True, exist_ok=True)
+    (town_root / ".gastown").mkdir(exist_ok=True)
+    (town_root / "state").mkdir(exist_ok=True)
+    (town_root / "projects").mkdir(exist_ok=True)
     
     workspace_manager = WorkspaceManager(town_root)
     workspace_manager.create_manager_workspace()
@@ -140,12 +180,44 @@ async def async_main():
     project_path = town_root / "projects" / project_name
     project_path.mkdir(parents=True)
     (project_path / ".tasks").mkdir()
+    (project_path / "settings").mkdir()
     
-    # Save sample code to workspace
-    code_dir = project_path / "src"
-    code_dir.mkdir(parents=True, exist_ok=True)
-    (code_dir / "calculator.py").write_text(SAMPLE_CODE)
-    print(f"📝 Created sample code: {code_dir / 'calculator.py'}")
+    # ========================================
+    # CREATE SOURCE GIT REPOSITORY
+    # ========================================
+    print("\n🔧 Setting up git repository for worktrees...")
+    source_repo.mkdir(parents=True)
+    run_cmd("git init", source_repo)
+    run_cmd('git config user.email "demo@gastown.local"', source_repo)
+    run_cmd('git config user.name "Gas Town Demo"', source_repo)
+    
+    # Create the calculator module
+    src_dir = source_repo / "src"
+    src_dir.mkdir()
+    (src_dir / "__init__.py").write_text("")
+    (src_dir / "calculator.py").write_text(SAMPLE_CODE)
+    
+    # Create tests directory placeholder
+    tests_dir = source_repo / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "__init__.py").write_text("")
+    (tests_dir / ".gitkeep").write_text("")
+    
+    # Create pyproject.toml
+    (source_repo / "pyproject.toml").write_text('''[project]
+name = "calculator"
+version = "0.1.0"
+description = "A simple calculator module"
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+''')
+    
+    # Initial commit
+    run_cmd("git add .", source_repo)
+    run_cmd('git commit -m "Initial commit: calculator module"', source_repo)
+    print(f"   ✓ Created git repo: {source_repo}")
+    print(f"   ✓ Sample code: {src_dir / 'calculator.py'}")
     
     # Create task manager
     tm = TaskManager(project_path)
@@ -257,9 +329,9 @@ Keep it practical and focused on the calculator module.""",
     )
     print(f"\n🚚 Created convoy: {convoy.name} ({convoy.id})")
     
-    # Run workers
+    # Run workers with git worktrees
     print("\n" + "=" * 60)
-    print("🏃 Running Workers...")
+    print("🏃 Running Workers (with Git Worktrees)...")
     print("=" * 60)
     
     tasks = tm.list_tasks()
@@ -267,9 +339,22 @@ Keep it practical and focused on the calculator module.""",
         print(f"\n[{i}/{len(tasks)}] 🔧 Worker processing: {task.title}")
         print("-" * 50)
         
-        # Spawn worker
-        worker = agent_manager.spawn_worker(project_name, task.id)
-        print(f"   Worker {worker.id[-12:]} spawned")
+        # Spawn worker WITH worktree
+        worker = agent_manager.spawn_worker(
+            project=project_name,
+            task_id=task.id,
+            repo_path=source_repo,
+            use_worktree=True
+        )
+        print(f"   Worker: {worker.id[-12:]}")
+        
+        # Show worktree info
+        worktree_path = agent_manager.get_worktree_path(worker.id)
+        branch_name = f"worker-{worker.id}"
+        
+        if worktree_path:
+            print(f"   Worktree: {worktree_path}")
+            print(f"   Branch: {branch_name}")
         
         # Assign task
         tm.assign_task(task.id, worker.id)
@@ -289,8 +374,23 @@ Keep it practical and focused on the calculator module.""",
             preview = completed_task.result[:300] + "..." if len(completed_task.result) > 300 else completed_task.result
             print(f"📄 Result preview:\n{preview}")
         
-        # Cleanup worker
+        # Cleanup worker (but worktree artifacts remain for inspection)
         agent_manager.kill_worker(worker.id)
+    
+    # Show git worktrees
+    print("\n" + "=" * 60)
+    print("🌳 Git Worktree Status")
+    print("=" * 60)
+    
+    wt_mgr = WorktreeManager(source_repo)
+    worktrees = wt_mgr.list_worktrees()
+    
+    print(f"\nWorktrees in {source_repo}:")
+    for wt in worktrees:
+        branch = wt.get("branch", "detached")
+        path = wt.get("path", "unknown")
+        print(f"   📂 {path}")
+        print(f"      Branch: {branch}")
     
     # Summary
     print("\n" + "=" * 60)
@@ -300,26 +400,126 @@ Keep it practical and focused on the calculator module.""",
     completed = sum(1 for t in tm.list_tasks() if t.status == "completed")
     print(f"✅ Completed: {completed}/{len(tasks)} tasks")
     
-    print(f"\n📁 Results saved to:")
-    print(f"   {project_path / '.tasks' / 'tasks.json'}")
+    print(f"\n📁 Gas Town artifacts:")
+    print(f"   Town root:    {town_root}")
+    print(f"   Project:      {project_path}")
+    print(f"   Tasks:        {project_path / '.tasks' / 'tasks.json'}")
+    print(f"   State:        {town_root / 'state'}")
+    print(f"   Source repo:  {source_repo}")
     
-    print(f"\n📝 Sample code location:")
-    print(f"   {code_dir / 'calculator.py'}")
+    # Write CLI validation README
+    readme_content = f'''# Test Generator Demo - CLI Validation Guide
+
+## Overview
+This directory contains the Gas Town workspace created by `demo_test_generator.py`.
+Use the `sgt` CLI commands below to inspect the generated artifacts.
+
+## Quick Validation Commands
+
+### 1. List Projects
+```bash
+cd {town_root}
+sgt project list
+```
+
+### 2. List Tasks
+```bash
+sgt task list --project test-gen
+```
+
+### 3. View Task Details
+```bash
+# Get task IDs from the list above, then:
+sgt task show <task-id> --project test-gen
+```
+
+### 4. View Convoy Status
+```bash
+sgt convoy list
+sgt convoy show <convoy-id>
+```
+
+### 5. Check Git Worktrees
+```bash
+cd {source_repo}
+git worktree list
+git branch -a
+```
+
+## Directory Structure
+```
+test-generator-town/
+├── .gastown/           # Gas Town configuration
+├── state/              # Agent and convoy state
+│   ├── agents.json
+│   └── convoys.json
+├── manager/            # Manager agent workspace
+│   └── mailbox/
+├── projects/
+│   └── test-gen/       # Our test generation project
+│       ├── .tasks/
+│       │   └── tasks.json    # All task definitions & results
+│       ├── settings/
+│       └── workers/          # Worker workspaces (with worktrees)
+└── calculator-repo/    # Source git repository
+    ├── src/
+    │   └── calculator.py
+    ├── tests/
+    └── pyproject.toml
+```
+
+## Extracting Generated Tests
+
+### Using Python
+```python
+from pathlib import Path
+from sgt.core.task_manager import TaskManager
+
+tm = TaskManager(Path('./test-generator-town/projects/test-gen'))
+for task in tm.list_tasks():
+    if 'pytest' in task.title.lower():
+        print(f"=== {{task.title}} ===")
+        print(task.result)
+```
+
+### Using CLI + jq (if installed)
+```bash
+cat test-generator-town/projects/test-gen/.tasks/tasks.json | jq '.tasks[] | select(.title | contains("pytest")) | .result'
+```
+
+## Re-running the Demo
+```bash
+python demo_test_generator.py
+```
+
+Note: This will clean up and recreate the entire workspace.
+
+## LLM Configuration
+The demo auto-detects LLM providers in this order:
+1. `GITHUB_TOKEN` → GitHub Models (gpt-4o-mini)
+2. `OPENAI_API_KEY` → OpenAI (gpt-4o-mini)
+3. `ANTHROPIC_API_KEY` → Anthropic (claude-3-haiku)
+
+If no API key is found, runs in simulation mode.
+'''
     
-    # Show how to extract test code
-    print("\n💡 To extract the generated tests, you can run:")
-    print("""
-    from pathlib import Path
-    from sgt.core.task_manager import TaskManager
+    readme_path = town_root / "README.md"
+    readme_path.write_text(readme_content, encoding='utf-8')
+    print(f"\n📖 CLI validation guide: {readme_path}")
     
-    tm = TaskManager(Path('./test-generator-town/projects/test-gen'))
-    for task in tm.list_tasks():
-        if 'pytest' in task.title.lower():
-            print(f"=== {task.title} ===")
-            print(task.result)
-    """)
+    # Print quick CLI commands
+    print("\n" + "=" * 60)
+    print("🔍 VALIDATE WITH CLI")
+    print("=" * 60)
+    print(f"""
+cd {town_root}
+sgt project list              # List projects
+sgt task list --project test-gen   # List all tasks
+sgt convoy list               # List convoys
+git -C calculator-repo worktree list  # Show git worktrees
+""")
     
-    print("\n🎉 Demo complete!")
+    print("🎉 Demo complete!")
 
 if __name__ == "__main__":
     main()
