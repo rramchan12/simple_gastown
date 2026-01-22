@@ -14,7 +14,7 @@ Simple Gas Town enables persistent, observable multi-agent coordination through:
 
 ## Features
 
-### Phase 1 (Current) - Core Foundation
+### Phase 1 ✅ - Core Foundation
 - Task creation, listing, and management
 - Worker lifecycle management (spawn, run, kill)
 - Mailbox-based message passing
@@ -22,22 +22,36 @@ Simple Gas Town enables persistent, observable multi-agent coordination through:
 - Convoy (batch) tracking
 - JSON file state persistence
 - Rich CLI with beautiful output
-- Complete working demo
 
-### Phase 2 (Planned) - Git Integration
-- Git worktree per worker
-- Isolated branch per task
-- Automatic cleanup
+### Phase 2 ✅ - Git Integration
+- Git worktree per worker (isolated branches)
+- Generated code committed to worker branches
+- Automatic worktree cleanup
 
-### Phase 3 (Planned) - LLM Integration
-- OpenAI/Anthropic/GitHub Copilot support
+### Phase 3 ✅ - LLM Integration
+- GitHub Models / OpenAI / Anthropic support
 - Real task execution with AI
-- Code generation and modification
+- Code extraction from LLM responses
+- Auto-detection from environment tokens
 
 ### Phase 4 (Planned) - Supervision
 - Health monitoring
 - Automatic recovery
 - Timeout handling
+
+## Proof of Concept: Test Generator Town
+
+A working POC that generates tests for external repositories:
+
+```bash
+# Configure your target repo
+edit test_generator_town/configs/project.yaml
+
+# Run
+python -m test_generator_town configs/project.yaml
+```
+
+See [test_generator_town/README.md](test_generator_town/README.md) for details.
 
 ## Quick Start
 
@@ -185,40 +199,27 @@ pytest --cov=sgt tests/
 
 ```
 simple_gastown/
-├── sgt/                    # Main package
-│   ├── cli/               # CLI commands
-│   │   ├── main.py       # Entry point
-│   │   ├── init.py       # Init commands
-│   │   ├── task.py       # Task commands
-│   │   ├── worker.py     # Worker commands
-│   │   └── convoy.py     # Convoy commands
-│   │
-│   ├── core/              # Business logic
-│   │   ├── task_manager.py
-│   │   ├── agent_manager.py
-│   │   ├── convoy_manager.py
-│   │   └── workspace.py
-│   │
-│   ├── agents/            # Agent implementations
-│   │   ├── base.py
-│   │   └── worker.py
-│   │
-│   ├── storage/           # Persistence layer
-│   │   ├── state.py
-│   │   ├── mailbox.py
-│   │   └── hooks.py
-│   │
-│   ├── utils/             # Utilities
-│   │   ├── ids.py
-│   │   ├── logger.py
-│   │   └── process.py
-│   │
-│   └── models.py          # Data models
+├── sgt/                        # Main package
+│   ├── cli/                   # CLI commands
+│   ├── core/                  # Business logic
+│   ├── agents/                # Agent implementations
+│   ├── storage/               # Persistence layer
+│   ├── git/                   # Git worktree management
+│   ├── llm/                   # LLM provider integration
+│   └── utils/                 # Utilities
 │
-├── tests/                 # Unit tests
-├── demo.py               # Working demo
-├── pyproject.toml        # Project config
-└── requirements.txt      # Dependencies
+├── test_generator_town/       # POC: Test generation for external repos
+│   ├── configs/project.yaml  # Configuration
+│   ├── runner.py              # Execution engine
+│   └── README.md
+│
+├── town_scaffolding/          # Template for new projects
+│   ├── configs/project.yaml
+│   └── README.md
+│
+├── tests/                     # Unit tests
+├── pyproject.toml            # Project config
+└── requirements.txt          # Dependencies
 ```
 
 ## Technology Stack

@@ -1,0 +1,52 @@
+# Project Configuration
+# =====================
+# Copy and customize this file for your project.
+#
+# Run with:
+#   python -m town_scaffolding configs/project.yaml
+
+name: my-project
+
+# Path to git repository (absolute or relative to this file)
+repo_path: "../../path/to/your/repo"
+
+# Workspace location (relative to this file)
+town_root: "./workspace"
+
+# Task grouping name
+convoy_name: "My Task Batch"
+
+# Git worktrees for isolated worker environments
+use_worktrees: true
+
+# Clean up previous workspace on start
+cleanup_on_start: true
+
+# LLM Configuration (optional - auto-detects from environment)
+# Supported: GITHUB_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY
+# llm:
+#   provider: github       # github, openai, or anthropic
+#   model: gpt-4o-mini     # model name
+#   temperature: 0.7
+#   max_tokens: 4096
+
+# Tasks to execute
+tasks:
+  - title: "Task 1"
+    description: |
+      Describe what the agent should do.
+      
+      Be specific about:
+      - Objectives
+      - Expected outputs
+      - Constraints
+    priority: high
+    tags:
+      - setup
+
+  - title: "Task 2"
+    description: |
+      Another task description.
+    priority: normal
+    tags:
+      - feature

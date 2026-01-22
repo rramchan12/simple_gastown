@@ -1,27 +1,27 @@
 """
-CLI entry point for the tester module.
+CLI entry point for the project runner.
 
 Usage:
-    python -m tester path/to/config.yaml
-    python -m tester path/to/config.json --no-readme
+    python -m town_scaffolding path/to/config.yaml
+    python -m town_scaffolding config.yaml --quiet
 """
 import argparse
 import asyncio
 import sys
 from pathlib import Path
 
-from .runner import TestRunner
+from .runner import Runner
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Simple Gas Town Test Runner",
+        description="Simple Gas Town Project Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python -m tester configs/calculator_tests.yaml
-    python -m tester my_project.json --quiet
-    python -m tester config.yaml --no-readme
+    python -m town_scaffolding configs/project.yaml
+    python -m town_scaffolding config.json --quiet
+    python -m town_scaffolding config.yaml --no-readme
         """
     )
     
@@ -58,7 +58,7 @@ Examples:
     
     # Load and run
     try:
-        runner = TestRunner.from_config(args.config)
+        runner = Runner.from_config(args.config)
         
         if args.no_cleanup:
             runner.config.cleanup_on_start = False

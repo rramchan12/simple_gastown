@@ -1,8 +1,8 @@
 # Simple Gas Town - Build Summary
 
-## ✅ Project Complete!
+## ✅ Phases 1-3 Complete!
 
-Successfully built a simplified multi-agent task orchestration system based on the Gas Town philosophy.
+Successfully built a multi-agent task orchestration system with Git worktrees and LLM integration.
 
 ## What Was Built
 
@@ -26,16 +26,27 @@ Successfully built a simplified multi-agent task orchestration system based on t
 
 4. **Agent Implementations** (`sgt/agents/`)
    - `base.py` - Base agent class
-   - `worker.py` - Worker agent with task execution
+   - `worker.py` - Worker agent with LLM execution and code extraction
 
-5. **CLI Interface** (`sgt/cli/`)
+5. **Git Integration** (`sgt/git/`)
+   - `worktree.py` - Git worktree management per worker
+   - Isolated branches for each task
+   - Auto-commit of generated code
+
+6. **LLM Integration** (`sgt/llm/`)
+   - GitHub Models, OpenAI, Anthropic support
+   - Auto-detection from environment tokens
+   - Code block extraction from responses
+
+7. **CLI Interface** (`sgt/cli/`)
    - `main.py` - CLI entry point
    - `init.py` - Initialization commands
    - `task.py` - Task management commands
    - `worker.py` - Worker management commands
    - `convoy.py` - Convoy management commands
+   - `git.py` - Git worktree commands
 
-6. **Utilities** (`sgt/utils/`)
+8. **Utilities** (`sgt/utils/`)
    - `ids.py` - Unique ID generation
    - `logger.py` - Logging setup
    - `process.py` - Process management
@@ -50,7 +61,18 @@ Successfully built a simplified multi-agent task orchestration system based on t
 - Convoy (batch) tracking
 - State persistence to JSON files
 - Rich CLI with colored output
-- Complete working demo
+
+✅ **Phase 2 Complete - Git Integration**
+- Git worktree per worker
+- Isolated branch per task
+- Generated code committed to branches
+- Automatic worktree cleanup
+
+✅ **Phase 3 Complete - LLM Integration**
+- GitHub Models / OpenAI / Anthropic support
+- Auto-detection from environment tokens
+- Code extraction from LLM responses
+- File writing to git worktrees
 
 ### File Structure
 
@@ -60,7 +82,6 @@ simple_gastown/
 ├── requirements.txt        # Dependencies
 ├── README.md              # Project overview
 ├── QUICKSTART.md          # Getting started guide
-├── demo.py                # Working demo script
 │
 ├── sgt/                   # Main package
 │   ├── __init__.py
@@ -72,7 +93,8 @@ simple_gastown/
 │   │   ├── init.py
 │   │   ├── task.py
 │   │   ├── worker.py
-│   │   └── convoy.py
+│   │   ├── convoy.py
+│   │   └── git.py
 │   │
 │   ├── core/              # Business logic
 │   │   ├── task_manager.py
@@ -82,7 +104,13 @@ simple_gastown/
 │   │
 │   ├── agents/            # Agent implementations
 │   │   ├── base.py
-│   │   └── worker.py
+│   │   └── worker.py      # With LLM + code extraction
+│   │
+│   ├── git/               # Git integration
+│   │   └── worktree.py
+│   │
+│   ├── llm/               # LLM providers
+│   │   └── __init__.py
 │   │
 │   ├── storage/           # Persistence
 │   │   ├── state.py
@@ -94,10 +122,20 @@ simple_gastown/
 │       ├── logger.py
 │       └── process.py
 │
+├── test_generator_town/   # POC: Test generation
+│   ├── configs/project.yaml
+│   ├── runner.py
+│   └── README.md
+│
+├── town_scaffolding/      # Template for new projects
+│   ├── configs/project.yaml
+│   └── README.md
+│
 └── tests/                 # Unit tests
     ├── test_task_manager.py
     ├── test_agent_manager.py
-    └── test_mailbox.py
+    ├── test_mailbox.py
+    └── test_worktree.py
 ```
 
 ## How It Works
@@ -166,22 +204,17 @@ All in ~6 seconds!
 
 ## Next Steps (Future Phases)
 
-### Phase 2: Git Integration
-- Git worktree per worker
-- Isolated branches
-- Automatic cleanup
-
-### Phase 3: LLM Integration
-- OpenAI/Anthropic/GitHub Copilot
-- Real task execution
-- Code generation
-- Result validation
-
-### Phase 4: Supervisor
+### Phase 4: Supervisor (Planned)
 - Health monitoring
 - Automatic recovery
 - Timeout handling
 - Worker nudging
+
+### Future Enhancements
+- Multi-agent collaboration
+- Task dependencies
+- Result validation
+- Web dashboard
 
 ## Performance
 
@@ -225,10 +258,11 @@ See:
 | Task Tracking | JSON files | Git-backed SQLite |
 | Agents | Manager + Worker | 6+ agent types |
 | Communication | JSON mailboxes | Beads + JSONL |
-| LLM Support | OpenAI/Claude | Claude Code CLI |
-| Complexity | ~2,500 lines | ~50,000 lines |
+| Git Integration | ✅ Worktrees | ✅ Native |
+| LLM Support | GitHub/OpenAI/Claude | Claude Code CLI |
+| Complexity | ~3,500 lines | ~50,000 lines |
 | Language | Python | Go |
-| Status | Phase 1 Complete | Production |
+| Status | Phase 3 Complete | Production |
 
 ## Success Criteria Met
 
@@ -237,7 +271,12 @@ See:
 ✅ Workers read assignments from mailboxes
 ✅ State persists across operations
 ✅ Full CLI with rich output
-✅ Working end-to-end demo
+✅ Git worktrees per worker
+✅ LLM integration (GitHub/OpenAI/Anthropic)
+✅ Code extraction and file generation
+✅ Generated code committed to branches
+✅ Working POC: test_generator_town
+✅ Reusable scaffolding template
 ✅ Clean, maintainable code
 ✅ Comprehensive documentation
 
@@ -252,19 +291,23 @@ python demo.py  # ✅ Works!
 
 ## Conclusion
 
-Successfully built a fully functional Phase 1 implementation of Simple Gas Town:
+Successfully built Phases 1-3 of Simple Gas Town:
 
-- ✅ Complete core foundation
-- ✅ All Phase 1 features working
+- ✅ Complete core foundation (Phase 1)
+- ✅ Git worktree integration (Phase 2)
+- ✅ LLM integration with code extraction (Phase 3)
+- ✅ Working POC: test_generator_town
+- ✅ Reusable town_scaffolding template
 - ✅ Beautiful CLI interface
 - ✅ Comprehensive tests
-- ✅ Ready for Phase 2 (Git) and Phase 3 (LLM)
+- ✅ Ready for Phase 4 (Supervisor)
 
-The system is production-ready for Phase 1 use cases and provides a solid foundation for future enhancements.
+The system can now generate code using LLMs and commit results to isolated git branches.
 
 **Build Status: SUCCESS** 🎉
 
 ---
 
 *Built: January 12, 2026*
+*Updated: January 22, 2026*
 *Based on: sgastown_schematic.md*

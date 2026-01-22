@@ -1,0 +1,59 @@
+# Test Generator Town Configuration
+# ==================================
+# Proof of concept: Generate tests for an external repository
+#
+# Setup:
+#   1. Clone your target repo somewhere
+#   2. Update repo_path below to point to it
+#   3. Run: python -m test_generator_town configs/project.yaml
+
+name: test-generation
+
+# IMPORTANT: Update this to your target repository
+repo_path: "Q:\\workspace\\gastown_playground\\calculator"
+
+# Workspace for generated artifacts
+town_root: "./tests"
+
+convoy_name: "Test Generation"
+use_worktrees: true
+cleanup_on_start: true
+
+# LLM auto-detects from: GITHUB_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY
+# Or specify explicitly:
+# llm:
+#   provider: github
+#   model: gpt-4o
+
+# Test generation tasks
+tasks:
+  - title: "Generate Unit Tests"
+    description: |
+      Analyze the repository and generate comprehensive unit tests.
+      
+      Instructions:
+      1. Identify the main modules and their public functions/classes
+      2. Create pytest-style unit tests with good coverage
+      3. Include edge cases and error handling tests
+      4. Use descriptive test names that explain what's being tested
+      
+      Output Python test files with proper imports and fixtures.
+    priority: high
+    tags:
+      - unit-tests
+      - pytest
+
+  - title: "Generate Integration Tests"
+    description: |
+      Create integration tests that verify components work together.
+      
+      Instructions:
+      1. Identify key integration points in the codebase
+      2. Create tests that exercise multiple modules together
+      3. Include setup and teardown for test isolation
+      
+      Output Python test files.
+    priority: normal
+    tags:
+      - integration-tests
+      - pytest

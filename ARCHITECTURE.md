@@ -38,14 +38,39 @@
 └──────────────────────────────────────────────────────────────────────────┘
                                   ↓
 ┌──────────────────────────────────────────────────────────────────────────┐
+│                         GIT LAYER (Phase 2)                               │
+│  ┌────────────────────────────────────────────────┐                      │
+│  │             WorktreeManager                     │                      │
+│  │  • Create worktree per worker                  │                      │
+│  │  • Isolated branch per task                    │                      │
+│  │  • Commit generated code                       │                      │
+│  │  • Cleanup on worker kill                      │                      │
+│  └────────────────────────────────────────────────┘                      │
+└──────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         LLM LAYER (Phase 3)                               │
+│  ┌────────────┐    ┌────────────┐    ┌────────────┐                     │
+│  │   GitHub   │    │   OpenAI   │    │ Anthropic  │                     │
+│  │   Models   │    │    API     │    │    API     │                     │
+│  └────────────┘    └────────────┘    └────────────┘                     │
+│        ↓                  ↓                 ↓                            │
+│  ┌───────────────────────────────────────────────┐                      │
+│  │  Auto-detect from: GITHUB_TOKEN, OPENAI_API_KEY│                      │
+│  └───────────────────────────────────────────────┘                      │
+└──────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌──────────────────────────────────────────────────────────────────────────┐
 │                         AGENT LAYER                                       │
 │  ┌────────────────┐              ┌────────────────┐                      │
 │  │    Manager     │              │    Worker      │                      │
 │  │  (persistent)  │ ◄─messages─► │  (ephemeral)   │                      │
 │  │                │              │                │                      │
 │  │ • Create tasks │              │ • Read hook    │                      │
-│  │ • Spawn workers│              │ • Execute task │                      │
-│  │ • Track convoy │              │ • Report back  │                      │
+│  │ • Spawn workers│              │ • Call LLM     │                      │
+│  │ • Track convoy │              │ • Extract code │                      │
+│  │                │              │ • Write files  │                      │
+│  │                │              │ • Git commit   │                      │
 │  │                │              │ • Self-destruct│                      │
 │  └────────────────┘              └────────────────┘                      │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -106,7 +131,28 @@
                 ├── state.json        # Worker state
                 ├── mailbox/          # Worker inbox
                 │   └── *.json
-                └── workspace/        # Git worktree (Phase 2)
+                └── worktree/         # Git worktree (isolated branch)
+                    └── *.py          # Generated code files
+
+═══════════════════════════════════════════════════════════════════════════
+                       PROJECT SCAFFOLDING
+═══════════════════════════════════════════════════════════════════════════
+
+test_generator_town/              # POC: Generate tests for repos
+├── __init__.py
+├── __main__.py                   # CLI entry point
+├── config.py                     # Configuration models
+├── runner.py                     # Execution engine
+└── configs/
+    └── project.yaml              # Target repo configuration
+
+town_scaffolding/                 # Template for new projects
+├── __init__.py
+├── __main__.py
+├── config.py
+├── runner.py
+└── configs/
+    └── project.yaml
 
 ═══════════════════════════════════════════════════════════════════════════
                         MESSAGE FLOW

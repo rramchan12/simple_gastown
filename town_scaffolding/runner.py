@@ -1,5 +1,14 @@
 """
-Test Runner - Core execution engine for the tester module.
+Runner - Core execution engine for the project.
+
+This module handles:
+1. Loading configuration
+2. Setting up the Gas Town workspace
+3. Spawning workers with git worktrees
+4. Running tasks through LLM-powered agents
+5. Collecting and reporting results
+
+Customize the run() method to add project-specific logic.
 """
 import asyncio
 import os
@@ -8,36 +17,33 @@ import time
 from pathlib import Path
 from typing import Optional, Union
 
-from .config import TestConfig, LLMConfig
+from .config import ProjectConfig, LLMConfig
 
 
-class TestRunner:
+class Runner:
     """
-    Executes test generation tasks using Simple Gas Town agents.
+    Executes tasks using Simple Gas Town agents.
     
-    The runner:
-    1. Loads configuration from external files
-    2. Sets up the Gas Town workspace
-    3. Spawns workers with git worktrees for isolation
-    4. Runs tasks through LLM-powered agents
-    5. Collects and reports results
+    Usage:
+        runner = Runner.from_config("configs/project.yaml")
+        results = await runner.run()
     """
     
-    def __init__(self, config: TestConfig):
+    def __init__(self, config: ProjectConfig):
         self.config = config
         self._llm_provider: Optional[str] = None
         self._llm_model: Optional[str] = None
         self._use_llm: bool = False
         
     @classmethod
-    def from_config(cls, path: Union[str, Path]) -> "TestRunner":
+    def from_config(cls, path: Union[str, Path]) -> "Runner":
         """Create a runner from a configuration file."""
         path = Path(path)
         
         if path.suffix in ('.yaml', '.yml'):
-            config = TestConfig.from_yaml(path)
+            config = ProjectConfig.from_yaml(path)
         elif path.suffix == '.json':
-            config = TestConfig.from_json(path)
+            config = ProjectConfig.from_json(path)
         else:
             raise ValueError(f"Unsupported config format: {path.suffix}")
         
@@ -99,7 +105,7 @@ class TestRunner:
                 shutil.rmtree(town_root, ignore_errors=True)
     
     def _setup_workspace(self) -> tuple:
-        """Set up the Gas Town workspace. Returns (workspace_manager, state_manager, agent_manager)."""
+        """Set up the Gas Town workspace."""
         from sgt.core.workspace import WorkspaceManager
         from sgt.core.agent_manager import AgentManager
         from sgt.storage.state import StateManager
@@ -123,7 +129,7 @@ class TestRunner:
         return workspace_manager, state_manager, agent_manager
     
     def _setup_project(self) -> Path:
-        """Create project directory structure. Returns project path."""
+        """Create project directory structure."""
         project_path = self.config.town_root / "projects" / self.config.name
         project_path.mkdir(parents=True, exist_ok=True)
         (project_path / ".tasks").mkdir(exist_ok=True)
@@ -132,7 +138,7 @@ class TestRunner:
     
     async def run(self, verbose: bool = True) -> dict:
         """
-        Run the test generation workflow.
+        Run the task execution workflow.
         
         Args:
             verbose: Print progress messages
@@ -162,7 +168,7 @@ class TestRunner:
         
         if verbose:
             print("=" * 60)
-            print(f"🧪 Test Runner: {self.config.name}")
+            print(f"🚀 Runner: {self.config.name}")
             print("=" * 60)
             
             if self._use_llm:
@@ -171,7 +177,7 @@ class TestRunner:
                 print("⚠️  No LLM available - running in simulation mode")
             
             print(f"📂 Repository: {self.config.repo_path}")
-            print(f"📁 Town root: {self.config.town_root}")
+            print(f"📁 Workspace: {self.config.town_root}")
             print()
         
         # Cleanup if requested
@@ -312,37 +318,27 @@ class TestRunner:
         return results
     
     def generate_readme(self) -> str:
-        """Generate a CLI validation README for the workspace."""
+        """Generate a README for the workspace."""
         town_root = self.config.town_root
         project_name = self.config.name
         repo_path = self.config.repo_path
         
-        return f'''# {self.config.convoy_name} - CLI Validation Guide
+        return f'''# {self.config.convoy_name} - Results
 
 ## Overview
-This workspace was created by the Simple Gas Town Test Runner.
+This workspace was created by the Simple Gas Town Runner.
 
-## Quick Validation Commands
-
-### List Projects
-```bash
-cd {town_root}
-sgt project list
-```
+## Commands
 
 ### List Tasks
 ```bash
+cd {town_root}
 sgt task list --project {project_name}
 ```
 
 ### View Task Details
 ```bash
 sgt task show <task-id> --project {project_name}
-```
-
-### View Convoy Status
-```bash
-sgt convoy list
 ```
 
 ### Check Git Worktrees
