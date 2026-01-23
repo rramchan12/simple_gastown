@@ -36,6 +36,7 @@ class ProjectConfig:
     
     llm: LLMConfig = field(default_factory=LLMConfig)
     use_worktrees: bool = True
+    preserve_worktrees: bool = True  # Keep worktrees after task completion for inspection
     convoy_name: str = "Test Generation"
     cleanup_on_start: bool = True
     
@@ -85,6 +86,7 @@ class ProjectConfig:
             tasks=tasks,
             llm=llm,
             use_worktrees=data.get("use_worktrees", True),
+            preserve_worktrees=data.get("preserve_worktrees", True),
             convoy_name=data.get("convoy_name", "Test Generation"),
             cleanup_on_start=data.get("cleanup_on_start", True)
         )

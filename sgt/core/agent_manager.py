@@ -97,13 +97,15 @@ class AgentManager:
         return agent
     
     def kill_worker(self, worker_id: str, force: bool = False, 
-                   commit_message: Optional[str] = None):
+                   commit_message: Optional[str] = None,
+                   preserve_worktree: bool = False):
         """Terminate a worker and clean up.
         
         Args:
             worker_id: Worker ID to terminate
             force: If True, force cleanup even with uncommitted changes
             commit_message: If provided, commit work before cleanup
+            preserve_worktree: If True, keep the git worktree for inspection
         """
         agent = self.state_manager.get_agent(worker_id)
         if not agent:
@@ -116,8 +118,8 @@ class AgentManager:
         if commit_message:
             self.workspace_manager.commit_work(workspace, commit_message)
         
-        # Clean up workspace (handles worktree removal)
-        self.workspace_manager.cleanup_workspace(workspace)
+        # Clean up workspace (handles worktree removal unless preserved)
+        self.workspace_manager.cleanup_workspace(workspace, preserve_worktree=preserve_worktree)
         
         # Remove from state
         self.state_manager.remove_agent(worker_id)

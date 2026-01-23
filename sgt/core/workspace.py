@@ -180,11 +180,16 @@ class WorkspaceManager:
         
         return workspace
     
-    def cleanup_workspace(self, workspace: Path):
-        """Clean up a workspace directory."""
-        # First, remove any git worktree
+    def cleanup_workspace(self, workspace: Path, preserve_worktree: bool = False):
+        """Clean up a workspace directory.
+        
+        Args:
+            workspace: Path to the workspace directory
+            preserve_worktree: If True, keep the git worktree (only remove workspace metadata)
+        """
+        # First, remove any git worktree (unless preserving)
         info = self._read_worktree_info(workspace)
-        if info:
+        if info and not preserve_worktree:
             from sgt.git.worktree import WorktreeManager
             
             repo_path = Path(info["repo_path"])

@@ -220,7 +220,8 @@ class Runner:
             else:
                 results["failed"] += 1
             
-            agent_manager.kill_worker(worker.id)
+            # Preserve worktrees if configured (for inspection)
+            agent_manager.kill_worker(worker.id, preserve_worktree=self.config.preserve_worktrees)
         
         if self.config.use_worktrees and verbose:
             print("\n" + "=" * 60)

@@ -10,14 +10,15 @@
 name: test-generation
 
 # IMPORTANT: Update this to your target repository
-repo_path: "Q:\\workspace\\gastown_playground\\calculator"
+repo_path: "Q:\\workspace\\gastown_playground"
 
 # Workspace for generated artifacts
 town_root: "./tests"
 
 convoy_name: "Test Generation"
 use_worktrees: true
-cleanup_on_start: true
+preserve_worktrees: true  # Keep worktrees after completion for inspection
+cleanup_on_start: false
 
 # LLM auto-detects from: GITHUB_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY
 # Or specify explicitly:
