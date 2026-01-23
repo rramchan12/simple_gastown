@@ -253,6 +253,9 @@ class Worker(BaseAgent):
         if hook and hook.instructions:
             extra_instructions = f"\n\n## Additional Instructions\n{hook.instructions}"
         
+        # Get repository context from worktree
+        repo_context = self._get_repository_context()
+        
         prompt = f"""## Task Assignment
 
 **Task ID:** {task.id}
@@ -269,6 +272,7 @@ class Worker(BaseAgent):
 - **Workspace:** {self.workspace}
 - **Worker ID:** {self.id}
 {extra_instructions}
+{repo_context}
 
 ## Your Mission
 
@@ -276,6 +280,81 @@ Complete this task thoroughly. Provide working code if applicable, and explain y
 
 Begin now."""
         return prompt
+    
+    def _get_repository_context(self, max_files: int = 20, max_file_size: int = 8000) -> str:
+        """Extract repository context from the worktree for LLM prompt.
+        
+        Args:
+            max_files: Maximum number of files to include
+            max_file_size: Maximum size per file in characters
+            
+        Returns:
+            Formatted string with repository structure and key file contents
+        """
+        worktree_dir = self._find_worktree_dir()
+        if not worktree_dir:
+            self.logger.warning("No worktree found - LLM will have no repository context")
+            return ""
+        
+        self.logger.info(f"Extracting repository context from {worktree_dir}")
+        
+        context_parts = ["\n## Repository Contents\n"]
+        
+        # Find all Python files (excluding __pycache__, .git, etc.)
+        python_files = []
+        exclude_dirs = {'__pycache__', '.git', '.tox', '.pytest_cache', 'node_modules', 
+                       '.eggs', '*.egg-info', 'venv', '.venv', 'env', 'build', 'dist'}
+        
+        for py_file in worktree_dir.rglob("*.py"):
+            # Skip excluded directories
+            if any(excluded in py_file.parts for excluded in exclude_dirs):
+                continue
+            python_files.append(py_file)
+        
+        if not python_files:
+            self.logger.warning(f"No Python files found in {worktree_dir}")
+            return ""
+        
+        # Sort by path for consistent ordering
+        python_files.sort(key=lambda p: str(p))
+        
+        # Build file tree
+        context_parts.append("### File Structure\n```")
+        for py_file in python_files[:max_files * 2]:  # Show more in tree
+            rel_path = py_file.relative_to(worktree_dir)
+            context_parts.append(str(rel_path))
+        if len(python_files) > max_files * 2:
+            context_parts.append(f"... and {len(python_files) - max_files * 2} more files")
+        context_parts.append("```\n")
+        
+        # Include file contents for key files
+        context_parts.append("### Source Code\n")
+        
+        files_included = 0
+        for py_file in python_files:
+            if files_included >= max_files:
+                break
+            
+            try:
+                content = py_file.read_text(encoding='utf-8')
+                
+                # Skip very small files (likely __init__.py with just imports)
+                if len(content.strip()) < 50:
+                    continue
+                
+                # Truncate large files
+                if len(content) > max_file_size:
+                    content = content[:max_file_size] + "\n# ... (truncated)"
+                
+                rel_path = py_file.relative_to(worktree_dir)
+                context_parts.append(f"#### {rel_path}\n```python\n{content}\n```\n")
+                files_included += 1
+                
+            except Exception as e:
+                self.logger.warning(f"Failed to read {py_file}: {e}")
+        
+        self.logger.info(f"Included {files_included} files in repository context")
+        return '\n'.join(context_parts)
     
     def _build_prompt(self, task: Task) -> str:
         """Build an LLM prompt for the task (legacy method)."""

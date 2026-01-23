@@ -1,8 +1,8 @@
 """
-CLI entry point for Test Generator Town.
+CLI entry point for test_generator_town.
 
 Usage:
-    python -m test_generator_town configs/project.yaml
+    python -m test_generator_town path/to/config.yaml
     python -m test_generator_town config.yaml --quiet
 """
 import argparse
@@ -15,12 +15,13 @@ from .runner import Runner
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Test Generator Town - Generate tests for external repos",
+        description="Test Generator Town - Generate tests using Simple Gas Town agents",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python -m test_generator_town configs/project.yaml
+    python -m test_generator_town configs/gastown_playground.yaml
     python -m test_generator_town config.yaml --quiet
+    python -m test_generator_town config.yaml --no-readme
         """
     )
     
@@ -50,10 +51,12 @@ Examples:
     
     args = parser.parse_args()
     
+    # Validate config file exists
     if not args.config.exists():
         print(f"Error: Configuration file not found: {args.config}", file=sys.stderr)
         sys.exit(1)
     
+    # Load and run
     try:
         runner = Runner.from_config(args.config)
         
@@ -67,6 +70,7 @@ Examples:
             if not args.quiet:
                 print(f"\n📖 README saved: {readme_path}")
         
+        # Exit with error if any tasks failed
         if results["failed"] > 0:
             sys.exit(1)
             

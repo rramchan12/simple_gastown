@@ -1,10 +1,10 @@
 """
 Test Generator Town
-====================
-A proof-of-concept for generating tests for external repositories.
+===================
+Generates tests for repositories using Simple Gas Town agents.
 
 Usage:
-    python -m test_generator_town configs/project.yaml
+    python -m test_generator_town configs/gastown_playground.yaml
 """
 
 from .runner import Runner

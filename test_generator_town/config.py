@@ -10,7 +10,7 @@ import json
 
 @dataclass
 class TaskConfig:
-    """Configuration for a test generation task."""
+    """Configuration for a single test generation task."""
     title: str
     description: str
     priority: str = "normal"
@@ -20,7 +20,7 @@ class TaskConfig:
 @dataclass
 class LLMConfig:
     """LLM provider configuration."""
-    provider: Optional[str] = None
+    provider: Optional[str] = None  # github, openai, anthropic, or None for auto-detect
     model: Optional[str] = None
     temperature: float = 0.7
     max_tokens: int = 4096
@@ -29,31 +29,37 @@ class LLMConfig:
 @dataclass
 class ProjectConfig:
     """Main configuration for test generation."""
+    # Required settings
     name: str
     repo_path: Path
     town_root: Path
     tasks: List[TaskConfig]
     
+    # Optional settings
     llm: LLMConfig = field(default_factory=LLMConfig)
     use_worktrees: bool = True
-    preserve_worktrees: bool = True  # Keep worktrees after task completion for inspection
+    preserve_worktrees: bool = False
     convoy_name: str = "Test Generation"
     cleanup_on_start: bool = True
     
     @classmethod
     def from_yaml(cls, path: Path) -> "ProjectConfig":
+        """Load configuration from a YAML file."""
         with open(path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
         return cls._from_dict(data, path.parent)
     
     @classmethod
     def from_json(cls, path: Path) -> "ProjectConfig":
+        """Load configuration from a JSON file."""
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return cls._from_dict(data, path.parent)
     
     @classmethod
     def _from_dict(cls, data: dict, base_path: Path) -> "ProjectConfig":
+        """Parse configuration from a dictionary."""
+        # Resolve paths relative to config file
         repo_path = Path(data["repo_path"])
         if not repo_path.is_absolute():
             repo_path = (base_path / repo_path).resolve()
@@ -62,6 +68,7 @@ class ProjectConfig:
         if not town_root.is_absolute():
             town_root = (base_path / town_root).resolve()
         
+        # Parse tasks
         tasks = []
         for task_data in data.get("tasks", []):
             tasks.append(TaskConfig(
@@ -71,6 +78,7 @@ class ProjectConfig:
                 tags=task_data.get("tags", [])
             ))
         
+        # Parse LLM config
         llm_data = data.get("llm", {})
         llm = LLMConfig(
             provider=llm_data.get("provider"),
@@ -86,17 +94,21 @@ class ProjectConfig:
             tasks=tasks,
             llm=llm,
             use_worktrees=data.get("use_worktrees", True),
-            preserve_worktrees=data.get("preserve_worktrees", True),
+            preserve_worktrees=data.get("preserve_worktrees", False),
             convoy_name=data.get("convoy_name", "Test Generation"),
             cleanup_on_start=data.get("cleanup_on_start", True)
         )
     
     def validate(self) -> List[str]:
+        """Validate the configuration. Returns list of errors."""
         errors = []
+        
         if not self.repo_path.exists():
             errors.append(f"Repository path does not exist: {self.repo_path}")
         elif not (self.repo_path / ".git").exists():
             errors.append(f"Not a git repository: {self.repo_path}")
+        
         if not self.tasks:
             errors.append("No tasks defined in configuration")
+        
         return errors

@@ -1,43 +1,47 @@
-# Test Generator Town Configuration
-# ==================================
-# Proof of concept: Generate tests for an external repository
+# Test Generator for gastown_playground
+# ======================================
+# Generates comprehensive tests for the gastown_playground repository
 #
-# Setup:
-#   1. Clone your target repo somewhere
-#   2. Update repo_path below to point to it
-#   3. Run: python -m test_generator_town configs/project.yaml
+# Run with:
+#   python -m test_generator_town configs/gastown_playground.yaml
 
-name: test-generation
+name: gastown-playground-tests
 
-# IMPORTANT: Update this to your target repository
-repo_path: "Q:\\workspace\\gastown_playground"
+# Path to git repository
+repo_path: "Q:/workspace/gastown_playground"
 
-# Workspace for generated artifacts
-town_root: "./tests"
+# Workspace location (relative to this file)
+town_root: "./tests/projects/gastown-playground"
 
-convoy_name: "Test Generation"
+# Task grouping name
+convoy_name: "Test Generation for Gastown Playground"
+
+# Git worktrees for isolated worker environments (provides repo context to workers)
 use_worktrees: true
-preserve_worktrees: true  # Keep worktrees after completion for inspection
-cleanup_on_start: false
 
-# LLM auto-detects from: GITHUB_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY
-# Or specify explicitly:
+# Clean up previous workspace on start
+cleanup_on_start: true
+
+# Preserve worktrees after completion for inspection
+preserve_worktrees: true
+
+# LLM Configuration (auto-detects from GITHUB_TOKEN, OPENAI_API_KEY, or ANTHROPIC_API_KEY)
 # llm:
 #   provider: github
-#   model: gpt-4o
+#   model: gpt-4o-mini
 
-# Test generation tasks
+# Tasks to execute
 tasks:
   - title: "Generate Unit Tests"
     description: |
       Analyze the repository and generate comprehensive unit tests.
-      
+
       Instructions:
       1. Identify the main modules and their public functions/classes
       2. Create pytest-style unit tests with good coverage
       3. Include edge cases and error handling tests
       4. Use descriptive test names that explain what's being tested
-      
+
       Output Python test files with proper imports and fixtures.
     priority: high
     tags:
@@ -47,12 +51,12 @@ tasks:
   - title: "Generate Integration Tests"
     description: |
       Create integration tests that verify components work together.
-      
+
       Instructions:
       1. Identify key integration points in the codebase
       2. Create tests that exercise multiple modules together
       3. Include setup and teardown for test isolation
-      
+
       Output Python test files.
     priority: normal
     tags:

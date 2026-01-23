@@ -1,5 +1,5 @@
 """
-Runner for Test Generator Town.
+Runner - Core execution engine for Test Generator Town.
 """
 import asyncio
 import os
@@ -22,16 +22,20 @@ class Runner:
         
     @classmethod
     def from_config(cls, path: Union[str, Path]) -> "Runner":
+        """Create a runner from a configuration file."""
         path = Path(path)
+        
         if path.suffix in ('.yaml', '.yml'):
             config = ProjectConfig.from_yaml(path)
         elif path.suffix == '.json':
             config = ProjectConfig.from_json(path)
         else:
             raise ValueError(f"Unsupported config format: {path.suffix}")
+        
         return cls(config)
     
     def _detect_llm(self) -> None:
+        """Detect available LLM provider from environment or config."""
         if self.config.llm.provider:
             self._llm_provider = self.config.llm.provider
             self._llm_model = self.config.llm.model
@@ -54,6 +58,7 @@ class Runner:
             self._use_llm = False
     
     def _cleanup_workspace(self) -> None:
+        """Clean up previous workspace if it exists."""
         town_root = self.config.town_root
         repo_path = self.config.repo_path
         
@@ -76,11 +81,13 @@ class Runner:
                 shutil.rmtree(town_root, ignore_errors=True)
     
     def _setup_workspace(self) -> tuple:
+        """Set up the Gas Town workspace."""
         from sgt.core.workspace import WorkspaceManager
         from sgt.core.agent_manager import AgentManager
         from sgt.storage.state import StateManager
         
         town_root = self.config.town_root
+        
         town_root.mkdir(parents=True, exist_ok=True)
         (town_root / ".gastown").mkdir(exist_ok=True)
         (town_root / "state").mkdir(exist_ok=True)
@@ -96,6 +103,7 @@ class Runner:
         return workspace_manager, state_manager, agent_manager
     
     def _setup_project(self) -> Path:
+        """Create project directory structure."""
         project_path = self.config.town_root / "projects" / self.config.name
         project_path.mkdir(parents=True, exist_ok=True)
         (project_path / ".tasks").mkdir(exist_ok=True)
@@ -103,6 +111,7 @@ class Runner:
         return project_path
     
     async def run(self, verbose: bool = True) -> dict:
+        """Run the test generation workflow."""
         from sgt.core.task_manager import TaskManager
         from sgt.core.convoy_manager import ConvoyManager
         from sgt.agents.worker import run_worker
@@ -220,7 +229,6 @@ class Runner:
             else:
                 results["failed"] += 1
             
-            # Preserve worktrees if configured (for inspection)
             agent_manager.kill_worker(worker.id, preserve_worktree=self.config.preserve_worktrees)
         
         if self.config.use_worktrees and verbose:
