@@ -289,3 +289,124 @@ git merge <worker-branch> --no-ff -m "Add generated tests"
             path = self.config.town_root / "README.md"
         path.write_text(self.generate_readme(), encoding='utf-8')
         return path
+
+    def verify_generated_tests(self, verbose: bool = True) -> dict:
+        """
+        Verify generated tests by checking out worker branches and running pytest.
+        
+        Returns:
+            Dictionary with verification results per branch
+        """
+        import subprocess
+        from sgt.git.worktree import WorktreeManager
+        
+        results = {"branches": [], "passed": 0, "failed": 0, "errors": []}
+        
+        if not self.config.use_worktrees:
+            results["errors"].append("Worktrees not enabled - cannot verify branches")
+            return results
+        
+        repo_path = self.config.repo_path
+        
+        # Prune any orphan worktrees first (allows branch checkout)
+        try:
+            subprocess.run(
+                ["git", "worktree", "prune"],
+                cwd=repo_path, capture_output=True
+            )
+        except subprocess.CalledProcessError:
+            pass
+        
+        # Get current branch to restore later
+        try:
+            current = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=repo_path, capture_output=True, text=True, check=True
+            )
+            original_branch = current.stdout.strip()
+        except subprocess.CalledProcessError:
+            original_branch = "main"
+        
+        # Find worker branches
+        try:
+            branch_result = subprocess.run(
+                ["git", "branch", "-a"],
+                cwd=repo_path, capture_output=True, text=True, check=True
+            )
+            worker_branches = []
+            for b in branch_result.stdout.split("\n"):
+                # Strip whitespace and branch markers (* for current, + for worktree)
+                branch_name = b.strip().lstrip("*+ ").strip()
+                if "worker-" in branch_name and "remotes/" not in branch_name:
+                    worker_branches.append(branch_name)
+        except subprocess.CalledProcessError as e:
+            results["errors"].append(f"Failed to list branches: {e}")
+            return results
+        
+        if verbose:
+            print(f"\n🧪 Verifying {len(worker_branches)} worker branch(es)...")
+        
+        for branch in worker_branches:
+            branch_result = {"branch": branch, "status": "unknown", "output": ""}
+            
+            try:
+                # Checkout the branch
+                subprocess.run(
+                    ["git", "checkout", branch],
+                    cwd=repo_path, capture_output=True, check=True
+                )
+                
+                # Find test files
+                test_files = list(repo_path.glob("test_*.py"))
+                
+                if not test_files:
+                    branch_result["status"] = "no_tests"
+                    branch_result["output"] = "No test files found"
+                    if verbose:
+                        print(f"   ⚠️  {branch}: No test files found")
+                else:
+                    # Run pytest
+                    pytest_result = subprocess.run(
+                        ["pytest", "-v", "--tb=short"] + [str(f) for f in test_files],
+                        cwd=repo_path, capture_output=True, text=True
+                    )
+                    
+                    branch_result["output"] = pytest_result.stdout + pytest_result.stderr
+                    
+                    if pytest_result.returncode == 0:
+                        branch_result["status"] = "passed"
+                        results["passed"] += 1
+                        if verbose:
+                            print(f"   ✅ {branch}: Tests passed")
+                    else:
+                        branch_result["status"] = "failed"
+                        results["failed"] += 1
+                        if verbose:
+                            print(f"   ❌ {branch}: Tests failed")
+                            # Show brief failure info
+                            for line in pytest_result.stdout.split("\n"):
+                                if "FAILED" in line or "ERROR" in line:
+                                    print(f"      {line}")
+                                    
+            except subprocess.CalledProcessError as e:
+                branch_result["status"] = "error"
+                branch_result["output"] = str(e)
+                results["errors"].append(f"{branch}: {e}")
+                if verbose:
+                    print(f"   ⚠️  {branch}: Error - {e}")
+            
+            results["branches"].append(branch_result)
+        
+        # Restore original branch
+        try:
+            subprocess.run(
+                ["git", "checkout", original_branch],
+                cwd=repo_path, capture_output=True
+            )
+        except subprocess.CalledProcessError:
+            pass
+        
+        if verbose:
+            print(f"\n📊 Verification: {results['passed']} passed, {results['failed']} failed")
+        
+        return results

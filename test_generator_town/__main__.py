@@ -49,6 +49,18 @@ Examples:
         help="Don't clean up previous workspace"
     )
     
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify generated tests by running pytest on worker branches"
+    )
+    
+    parser.add_argument(
+        "--verify-only",
+        action="store_true",
+        help="Only run verification (skip test generation)"
+    )
+    
     args = parser.parse_args()
     
     # Validate config file exists
@@ -60,6 +72,13 @@ Examples:
     try:
         runner = Runner.from_config(args.config)
         
+        if args.verify_only:
+            # Just run verification
+            verify_results = runner.verify_generated_tests(verbose=not args.quiet)
+            if verify_results["failed"] > 0 or verify_results["errors"]:
+                sys.exit(1)
+            sys.exit(0)
+        
         if args.no_cleanup:
             runner.config.cleanup_on_start = False
         
@@ -69,6 +88,12 @@ Examples:
             readme_path = runner.save_readme()
             if not args.quiet:
                 print(f"\n📖 README saved: {readme_path}")
+        
+        # Optionally verify generated tests
+        if args.verify:
+            verify_results = runner.verify_generated_tests(verbose=not args.quiet)
+            if verify_results["failed"] > 0:
+                sys.exit(1)
         
         # Exit with error if any tasks failed
         if results["failed"] > 0:

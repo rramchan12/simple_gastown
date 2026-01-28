@@ -198,8 +198,8 @@ class WorkspaceManager:
             wt_mgr = WorktreeManager(repo_path)
             wt_mgr.remove_worktree(worktree_path, force=True)
         
-        # Then remove the workspace directory
-        if workspace.exists():
+        # Only remove workspace directory if NOT preserving worktree
+        if not preserve_worktree and workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
             logger.info(f"Cleaned up workspace at {workspace}")
     
