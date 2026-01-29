@@ -1,6 +1,6 @@
 # Simple Gas Town
 
-A simplified multi-agent task orchestration system inspired by Gas Town.
+A simplified multi-agent task orchestration system inspired by Gas Town. Vibe Code Alert!
 
 ## Overview
 
